@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# rainy_proof_frontend
 
-## Getting Started
+Rainy Proof 独立前端。技术栈：Next.js 16 · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui。
 
-First, run the development server:
+目录与后端包结构对齐：按**开发者**（`ergo` / `yemin`）与**功能**分包，功能间零业务依赖。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 信息架构
+
+```text
+/                     开发者门户（ERGO 标识为主入口，预留好友位）
+/<owner>              开发者工作区 / 功能画廊
+/<owner>/<feature>    具体功能页
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 开发
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 门户：[http://localhost:3000](http://localhost:3000)
+- ERGO 工作区：[http://localhost:3000/ergo](http://localhost:3000/ergo)
+- 排序可视化：[http://localhost:3000/ergo/sort-viz](http://localhost:3000/ergo/sort-viz)
 
-## Learn More
+```bash
+npm test
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 目录
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```text
+src/
+├── app/                         # 路由壳
+│   ├── page.tsx                 # 开发者门户
+│   ├── ergo/page.tsx            # ERGO 功能画廊
+│   └── yemin/page.tsx           # 好友命名空间占位
+├── features/
+│   ├── developers.ts            # 开发者注册表
+│   ├── catalog.ts               # 功能注册表
+│   ├── ergo/thanos_sort/
+│   └── yemin/
+└── shared/                      # 薄公共层（brand / ui / api-client）
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 新增约定
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| 动作 | 做法 |
+| --- | --- |
+| 好友加入 | 在 `developers.ts` 设为 `ready`，补 brand mark，加 `features/<id>/` |
+| 新功能 | `features/<owner>/<feature_snake>/` + `app/<owner>/<feature-kebab>/` + 写入 `catalog.ts` |
+| API（二期） | `/api/<owner>/<feature_snake>/...` |
