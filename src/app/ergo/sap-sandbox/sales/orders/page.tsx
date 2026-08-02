@@ -39,8 +39,8 @@ function OrdersListInner() {
     setError(null);
     try {
       const data = await listSalesOrders({
-        number: number || undefined,
-        customerCode: customerCode || undefined,
+        number: number.trim() || undefined,
+        customerCode: customerCode.trim() || undefined,
         status: status || undefined,
       });
       setItems(data ?? []);
@@ -65,7 +65,7 @@ function OrdersListInner() {
         <div className="space-y-1">
           <h2 className="text-xl font-semibold tracking-tight">销售订单</h2>
           <p className="text-sm text-muted-foreground">
-            按单号、客户、状态筛选；点击行进入详情。
+            单号、客户编码支持部分匹配；状态为精确筛选。点击行进入详情。
           </p>
         </div>
         {canWriteSales ? (
@@ -92,7 +92,7 @@ function OrdersListInner() {
             className="w-40"
             value={number}
             onChange={(e) => setNumber(e.target.value)}
-            placeholder="SO…"
+            placeholder="如 20002 或 SO2026"
           />
         </div>
         <div className="grid gap-1.5">
@@ -102,7 +102,7 @@ function OrdersListInner() {
             className="w-40"
             value={customerCode}
             onChange={(e) => setCustomerCode(e.target.value)}
-            placeholder="C-1001"
+            placeholder="如 1001 或 C-10"
           />
         </div>
         <div className="grid gap-1.5">
