@@ -22,10 +22,12 @@ import { ApiErrorBanner } from "@/features/ergo/sap_sandbox/components/ApiErrorB
 import { OrderStatusBadge } from "@/features/ergo/sap_sandbox/components/OrderStatusBadge";
 import { RequireAuth } from "@/features/ergo/sap_sandbox/components/RequireAuth";
 import { SALES_ORDERS_ROUTE } from "@/features/ergo/sap_sandbox/constants";
-import { ORDER_STATUSES } from "@/features/ergo/sap_sandbox/lib/masterDataStub";
+import { useSapI18n } from "@/features/ergo/sap_sandbox/i18n";
+import { ORDER_STATUS_CODES } from "@/features/ergo/sap_sandbox/lib/masterDataStub";
 import type { SalesOrderListItem } from "@/features/ergo/sap_sandbox/lib/types";
 
 function OrdersListInner() {
+  const { t, orderStatus } = useSapI18n();
   const { canWriteSales } = useAuth();
   const [number, setNumber] = useState("");
   const [customerCode, setCustomerCode] = useState("");
@@ -48,12 +50,12 @@ function OrdersListInner() {
       setError(err);
       setItems([]);
       if (err instanceof ApiError && err.status === 403) {
-        toast.error("无权限查看销售订单");
+        toast.error(t("errors.http.forbiddenOrdersView"));
       }
     } finally {
       setLoading(false);
     }
-  }, [number, customerCode, status]);
+  }, [number, customerCode, status, t]);
 
   useEffect(() => {
     void load();
@@ -63,9 +65,11 @@ function OrdersListInner() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-xl font-semibold tracking-tight">销售订单</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            {t("orders.list.title")}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            单号、客户编码支持部分匹配；状态为精确筛选。点击行进入详情。
+            {t("orders.list.hint")}
           </p>
         </div>
         {canWriteSales ? (
@@ -73,7 +77,7 @@ function OrdersListInner() {
             href={`${SALES_ORDERS_ROUTE}/new`}
             className={cn(buttonVariants())}
           >
-            新建订单
+            {t("orders.list.newOrder")}
           </Link>
         ) : null}
       </div>
@@ -86,43 +90,45 @@ function OrdersListInner() {
         }}
       >
         <div className="grid gap-1.5">
-          <Label htmlFor="number">单号</Label>
+          <Label htmlFor="number">{t("orders.list.filter.number")}</Label>
           <Input
             id="number"
             className="w-40"
             value={number}
             onChange={(e) => setNumber(e.target.value)}
-            placeholder="如 20002 或 SO2026"
+            placeholder={t("orders.list.filter.numberPlaceholder")}
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="customerCode">客户编码</Label>
+          <Label htmlFor="customerCode">
+            {t("orders.list.filter.customerCode")}
+          </Label>
           <Input
             id="customerCode"
             className="w-40"
             value={customerCode}
             onChange={(e) => setCustomerCode(e.target.value)}
-            placeholder="如 1001 或 C-10"
+            placeholder={t("orders.list.filter.customerCodePlaceholder")}
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="status">状态</Label>
+          <Label htmlFor="status">{t("common.status")}</Label>
           <select
             id="status"
             className="h-8 min-w-36 rounded-lg border border-input bg-transparent px-2 text-sm"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
-            <option value="">全部</option>
-            {ORDER_STATUSES.map((s) => (
-              <option key={s.code} value={s.code}>
-                {s.label}
+            <option value="">{t("common.all")}</option>
+            {ORDER_STATUS_CODES.map((code) => (
+              <option key={code} value={code}>
+                {orderStatus(code)}
               </option>
             ))}
           </select>
         </div>
         <Button type="submit" variant="outline" disabled={loading}>
-          查询
+          {t("common.search")}
         </Button>
       </form>
 
@@ -132,25 +138,25 @@ function OrdersListInner() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>单号</TableHead>
-              <TableHead>客户</TableHead>
-              <TableHead>销售组织</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead className="text-right">行数</TableHead>
-              <TableHead>创建时间</TableHead>
+              <TableHead>{t("orders.list.table.number")}</TableHead>
+              <TableHead>{t("orders.list.table.customer")}</TableHead>
+              <TableHead>{t("orders.list.table.salesOrg")}</TableHead>
+              <TableHead>{t("common.status")}</TableHead>
+              <TableHead className="text-right">{t("common.lineCount")}</TableHead>
+              <TableHead>{t("common.createdAt")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-muted-foreground">
-                  加载中…
+                  {t("common.loading")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-muted-foreground">
-                  暂无订单
+                  {t("orders.list.empty")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -172,14 +178,14 @@ function OrdersListInner() {
                   <TableCell>
                     <OrderStatusBadge
                       status={row.status}
-                      label={row.statusLabel || row.status}
+                      label={orderStatus(row.status, row.statusLabel)}
                     />
                   </TableCell>
                   <TableCell className="text-right">{row.lineCount}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {row.createdAt
                       ? new Date(row.createdAt).toLocaleString()
-                      : "—"}
+                      : t("common.emDash")}
                   </TableCell>
                 </TableRow>
               ))

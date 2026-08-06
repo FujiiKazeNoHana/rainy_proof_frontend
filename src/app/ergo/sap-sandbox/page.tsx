@@ -9,17 +9,21 @@ import {
   FEATURE_LOGIN_ROUTE,
   SALES_ORDERS_ROUTE,
 } from "@/features/ergo/sap_sandbox/constants";
+import { useSapI18n } from "@/features/ergo/sap_sandbox/i18n";
 
 export default function SapSandboxHomePage() {
+  const { t } = useSapI18n();
   const { isAuthenticated, canWriteSales, session } = useAuth();
   const apiBase = getApiBase();
 
   return (
     <div className="flex flex-col gap-8">
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold tracking-tight">概览</h2>
+        <h2 className="text-xl font-semibold tracking-tight">
+          {t("overview.title")}
+        </h2>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          对接 Gateway 销售订单 API。请从左侧菜单进入功能；后续库存、采购等模块会挂在同一菜单树下。
+          {t("overview.description")}
         </p>
       </div>
 
@@ -29,11 +33,19 @@ export default function SapSandboxHomePage() {
           <dd className="font-mono text-xs md:text-sm">{apiBase}</dd>
         </div>
         <div className="space-y-1 border-l-2 border-border pl-3">
-          <dt className="text-muted-foreground">登录状态</dt>
+          <dt className="text-muted-foreground">
+            {t("overview.loginStatus.label")}
+          </dt>
           <dd>
             {isAuthenticated
-              ? `${session?.displayName}（${(session?.roles ?? []).join(", ")}）${canWriteSales ? " · 可写销售" : " · 只读"}`
-              : "未登录 — 请先打开「开发登录」"}
+              ? t("overview.loginStatus.loggedIn", {
+                  displayName: session?.displayName ?? "",
+                  roles: (session?.roles ?? []).join(", "),
+                  writeHint: canWriteSales
+                    ? t("overview.loginStatus.writeSales")
+                    : t("overview.loginStatus.readOnly"),
+                })
+              : t("overview.loginStatus.notLoggedIn")}
           </dd>
         </div>
       </dl>
@@ -41,14 +53,14 @@ export default function SapSandboxHomePage() {
       <div className="flex flex-wrap gap-2">
         {!isAuthenticated ? (
           <Link href={FEATURE_LOGIN_ROUTE} className={cn(buttonVariants())}>
-            开发登录
+            {t("overview.actions.devLogin")}
           </Link>
         ) : (
           <Link
             href={SALES_ORDERS_ROUTE}
             className={cn(buttonVariants())}
           >
-            打开销售订单
+            {t("overview.actions.openOrders")}
           </Link>
         )}
         {isAuthenticated && canWriteSales ? (
@@ -56,7 +68,7 @@ export default function SapSandboxHomePage() {
             href={`${SALES_ORDERS_ROUTE}/new`}
             className={cn(buttonVariants({ variant: "outline" }))}
           >
-            新建订单
+            {t("overview.actions.newOrder")}
           </Link>
         ) : null}
         {isAuthenticated ? (
@@ -64,7 +76,7 @@ export default function SapSandboxHomePage() {
             href={FEATURE_LOGIN_ROUTE}
             className={cn(buttonVariants({ variant: "ghost" }))}
           >
-            切换角色
+            {t("overview.actions.switchRole")}
           </Link>
         ) : null}
       </div>

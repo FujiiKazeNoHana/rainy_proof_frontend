@@ -1,21 +1,27 @@
 "use client";
 
 import { ApiError } from "@/shared/lib/api-client";
+import { useSapI18n } from "../i18n";
 
 export function ApiErrorBanner({ error }: { error: unknown }) {
+  const { t, errorMessage } = useSapI18n();
   if (!error) return null;
+
+  const code = error instanceof ApiError ? error.errorCode : null;
   const message =
     error instanceof ApiError
-      ? error.message
+      ? errorMessage(code, error.message)
       : error instanceof Error
         ? error.message
-        : "请求失败";
-  const code = error instanceof ApiError ? error.errorCode : null;
+        : t("common.requestFailed");
   const details =
     error instanceof ApiError
       ? error.errors
           .map((e) => {
-            const loc = e.lineNo != null ? `行${e.lineNo}` : e.field || "";
+            const loc =
+              e.lineNo != null
+                ? t("common.linePrefix", { lineNo: e.lineNo })
+                : e.field || "";
             return `${loc ? `${loc}: ` : ""}${e.message || e.code || ""}`;
           })
           .filter(Boolean)

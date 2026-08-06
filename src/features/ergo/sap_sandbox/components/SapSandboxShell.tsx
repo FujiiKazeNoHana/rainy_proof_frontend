@@ -7,11 +7,13 @@ import { useAuth } from "@/shared/auth";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { FEATURE_ROUTE } from "../constants";
+import { SAP_LOCALES, useSapI18n, type SapLocale } from "../i18n";
 import { NavFavoritesProvider } from "./NavFavoritesProvider";
 import { SapSandboxSidebar } from "./SapSandboxSidebar";
 
 export function SapSandboxShell({ children }: { children: React.ReactNode }) {
   const { session, isAuthenticated, logout } = useAuth();
+  const { t, locale, setLocale } = useSapI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -24,7 +26,9 @@ export function SapSandboxShell({ children }: { children: React.ReactNode }) {
               variant="ghost"
               size="icon-sm"
               className="lg:hidden"
-              aria-label={mobileOpen ? "关闭菜单" : "打开菜单"}
+              aria-label={
+                mobileOpen ? t("shell.aria.closeMenu") : t("shell.aria.openMenu")
+              }
               onClick={() => setMobileOpen((v) => !v)}
             >
               {mobileOpen ? (
@@ -37,23 +41,43 @@ export function SapSandboxShell({ children }: { children: React.ReactNode }) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 <Link href="/" className="hover:text-foreground">
-                  门户
+                  {t("shell.breadcrumb.portal")}
                 </Link>
                 <span aria-hidden>/</span>
                 <Link href="/ergo" className="hover:text-foreground">
-                  ERGO
+                  {t("shell.breadcrumb.ergo")}
                 </Link>
                 <span aria-hidden>/</span>
                 <Link href={FEATURE_ROUTE} className="hover:text-foreground">
-                  SAP 沙盒
+                  {t("shell.breadcrumb.sapSandbox")}
                 </Link>
               </div>
               <h1 className="truncate font-heading text-lg font-semibold tracking-tight md:text-xl">
-                SAP 沙盒
+                {t("shell.title")}
               </h1>
             </div>
 
             <div className="flex shrink-0 items-center gap-2 pr-14 md:pr-24">
+              <label className="sr-only" htmlFor="sap-locale">
+                {t("shell.language")}
+              </label>
+              <select
+                id="sap-locale"
+                className="h-8 rounded-lg border border-input bg-transparent px-2 text-xs"
+                value={locale}
+                onChange={(e) => setLocale(e.target.value as SapLocale)}
+                aria-label={t("shell.language")}
+              >
+                {SAP_LOCALES.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {t(
+                      item.code === "zh"
+                        ? "shell.language.zh"
+                        : "shell.language.en",
+                    )}
+                  </option>
+                ))}
+              </select>
               {isAuthenticated ? (
                 <>
                   <span className="hidden max-w-[14rem] truncate text-xs text-muted-foreground sm:inline md:text-sm">
@@ -61,11 +85,13 @@ export function SapSandboxShell({ children }: { children: React.ReactNode }) {
                     {(session?.roles ?? []).join(", ")}
                   </span>
                   <Button variant="ghost" size="sm" onClick={logout}>
-                    退出
+                    {t("shell.logout")}
                   </Button>
                 </>
               ) : (
-                <span className="text-xs text-muted-foreground">未登录</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("shell.notLoggedIn")}
+                </span>
               )}
             </div>
           </div>
@@ -88,7 +114,7 @@ export function SapSandboxShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 className="fixed inset-0 z-40 bg-foreground/20 lg:hidden"
-                aria-label="关闭菜单遮罩"
+                aria-label={t("shell.aria.closeMenuOverlay")}
                 onClick={() => setMobileOpen(false)}
               />
               <aside className="fixed top-14 bottom-0 left-0 z-50 w-64 border-r border-sidebar-border bg-sidebar p-3 text-sidebar-foreground shadow-lg lg:hidden">

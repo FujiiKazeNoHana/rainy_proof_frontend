@@ -18,7 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { MATERIALS, PLANTS } from "../lib/masterDataStub";
+import { useSapI18n } from "../i18n";
+import type { CodeNameItem, MaterialListItem } from "../lib/masterDataTypes";
 
 export type LineDraft = {
   key: string;
@@ -36,22 +37,30 @@ export type LineDraft = {
 type Props = {
   lines: LineDraft[];
   onChange: (lines: LineDraft[]) => void;
+  materials: MaterialListItem[];
+  plants: CodeNameItem[];
   readOnly?: boolean;
 };
 
-function newLine(): LineDraft {
-  const material = MATERIALS[0];
-  return {
+export function createEmptyLines(
+  count = 1,
+  defaults?: {
+    materialCode?: string;
+    unit?: string;
+    plantCode?: string;
+  },
+): LineDraft[] {
+  return Array.from({ length: count }, () => ({
     key: `new-${crypto.randomUUID()}`,
-    materialCode: material.code,
+    materialCode: defaults?.materialCode ?? "",
     orderedQty: 1,
-    unit: material.defaultUnit,
-    plantCode: PLANTS[0].code,
+    unit: defaults?.unit ?? "EA",
+    plantCode: defaults?.plantCode ?? "",
     unitPrice: null,
     remark: "",
     deliveredQty: 0,
     billedQty: 0,
-  };
+  }));
 }
 
 /** 下拉在触发器下方展开，避免盖住当前选中项 */
@@ -62,6 +71,7 @@ function LineSelect({
   className,
   onValueChange,
   "aria-label": ariaLabel,
+  placeholder,
 }: {
   value: string;
   disabled?: boolean;
@@ -69,19 +79,34 @@ function LineSelect({
   className?: string;
   onValueChange: (value: string) => void;
   "aria-label"?: string;
+  placeholder?: string;
 }) {
+  const { t } = useSapI18n();
+  const items =
+    value && !options.some((o) => o.value === value)
+      ? [
+          {
+            value,
+            label: t("orderLines.currentOption", { value }),
+          },
+          ...options,
+        ]
+      : options;
+
   return (
     <Select
-      value={value}
-      disabled={disabled}
+      value={value || null}
+      disabled={disabled || items.length === 0}
       modal={false}
-      items={options}
+      items={items}
       onValueChange={(next) => {
         if (next != null) onValueChange(next);
       }}
     >
       <SelectTrigger size="sm" className={className} aria-label={ariaLabel}>
-        <SelectValue />
+        <SelectValue
+          placeholder={placeholder || t("common.selectPlaceholder")}
+        />
       </SelectTrigger>
       <SelectContent
         alignItemWithTrigger={false}
@@ -89,7 +114,7 @@ function LineSelect({
         align="start"
         sideOffset={6}
       >
-        {options.map((opt) => (
+        {items.map((opt) => (
           <SelectItem key={opt.value} value={opt.value}>
             {opt.label}
           </SelectItem>
@@ -99,15 +124,23 @@ function LineSelect({
   );
 }
 
-export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
+export function OrderLineEditor({
+  lines,
+  onChange,
+  materials,
+  plants,
+  readOnly,
+}: Props) {
+  const { t } = useSapI18n();
+
   const update = (key: string, patch: Partial<LineDraft>) => {
     onChange(
       lines.map((l) => {
         if (l.key !== key) return l;
         const next = { ...l, ...patch };
         if (patch.materialCode) {
-          const m = MATERIALS.find((x) => x.code === patch.materialCode);
-          if (m && !patch.unit) next.unit = m.defaultUnit;
+          const m = materials.find((x) => x.code === patch.materialCode);
+          if (m && !patch.unit) next.unit = m.baseUnit;
         }
         return next;
       }),
@@ -121,18 +154,34 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
     onChange(lines.filter((l) => l.key !== key));
   };
 
+  const addLine = () => {
+    const material = materials[0];
+    const plant = plants[0];
+    onChange([
+      ...lines,
+      ...createEmptyLines(1, {
+        materialCode: material?.code,
+        unit: material?.baseUnit,
+        plantCode: plant?.code,
+      }),
+    ]);
+  };
+
+  const emDash = t("common.emDash");
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <Label>订单行</Label>
+        <Label>{t("orderLines.title")}</Label>
         {!readOnly ? (
           <Button
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => onChange([...lines, newLine()])}
+            onClick={addLine}
+            disabled={materials.length === 0 || plants.length === 0}
           >
-            增行
+            {t("orderLines.addLine")}
           </Button>
         ) : null}
       </div>
@@ -141,12 +190,12 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">#</TableHead>
-              <TableHead>物料</TableHead>
-              <TableHead className="w-28">数量</TableHead>
-              <TableHead className="w-20">单位</TableHead>
-              <TableHead className="w-28">工厂</TableHead>
-              <TableHead className="w-28">单价</TableHead>
-              <TableHead>备注</TableHead>
+              <TableHead>{t("common.material")}</TableHead>
+              <TableHead className="w-28">{t("orderLines.quantity")}</TableHead>
+              <TableHead className="w-20">{t("orderLines.unit")}</TableHead>
+              <TableHead className="w-28">{t("common.plant")}</TableHead>
+              <TableHead className="w-28">{t("orderLines.unitPrice")}</TableHead>
+              <TableHead>{t("common.remark")}</TableHead>
               {!readOnly ? <TableHead className="w-20" /> : null}
             </TableRow>
           </TableHeader>
@@ -157,7 +206,7 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
                   colSpan={readOnly ? 7 : 8}
                   className="text-muted-foreground"
                 >
-                  暂无行项目
+                  {t("orderLines.empty")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -173,11 +222,12 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
                         line.materialCode
                       ) : (
                         <LineSelect
-                          aria-label="物料"
+                          aria-label={t("common.material")}
                           className="w-full min-w-40"
                           value={line.materialCode}
                           disabled={locked}
-                          options={MATERIALS.map((m) => ({
+                          placeholder={t("orderLines.selectMaterial")}
+                          options={materials.map((m) => ({
                             value: m.code,
                             label: `${m.code} · ${m.name}`,
                           }))}
@@ -206,7 +256,9 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
                       )}
                       {locked ? (
                         <div className="mt-0.5 text-[11px] text-muted-foreground">
-                          已交 {line.deliveredQty}
+                          {t("orderLines.deliveredQty", {
+                            qty: line.deliveredQty,
+                          })}
                         </div>
                       ) : null}
                     </TableCell>
@@ -229,13 +281,14 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
                         line.plantCode
                       ) : (
                         <LineSelect
-                          aria-label="工厂"
+                          aria-label={t("common.plant")}
                           className="w-full min-w-24"
                           value={line.plantCode}
                           disabled={locked}
-                          options={PLANTS.map((p) => ({
+                          placeholder={t("common.plant")}
+                          options={plants.map((p) => ({
                             value: p.code,
-                            label: p.code,
+                            label: `${p.code} · ${p.name}`,
                           }))}
                           onValueChange={(plantCode) =>
                             update(line.key, { plantCode })
@@ -245,7 +298,7 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
                     </TableCell>
                     <TableCell>
                       {readOnly ? (
-                        line.unitPrice ?? "—"
+                        line.unitPrice ?? emDash
                       ) : (
                         <Input
                           type="number"
@@ -265,7 +318,7 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
                     </TableCell>
                     <TableCell>
                       {readOnly ? (
-                        line.remark || "—"
+                        line.remark || emDash
                       ) : (
                         <Input
                           className="h-8"
@@ -285,12 +338,12 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
                           disabled={locked}
                           title={
                             locked
-                              ? "已有交货数量，不可删除"
-                              : "删除行"
+                              ? t("orderLines.deleteBlocked")
+                              : t("orderLines.deleteLine")
                           }
                           onClick={() => remove(line.key)}
                         >
-                          删
+                          {t("orderLines.deleteShort")}
                         </Button>
                       </TableCell>
                     ) : null}
@@ -303,8 +356,4 @@ export function OrderLineEditor({ lines, onChange, readOnly }: Props) {
       </div>
     </div>
   );
-}
-
-export function createEmptyLines(count = 1): LineDraft[] {
-  return Array.from({ length: count }, () => newLine());
 }

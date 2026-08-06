@@ -9,7 +9,22 @@ import {
   useState,
 } from "react";
 import { setUnauthorizedHandler } from "@/shared/lib/api-client";
-import { canReadSales, canWriteSales } from "./roles";
+import {
+  canAdjustInventory,
+  canPostGoodsReceipt,
+  canPostInvoiceReceipt,
+  canReadBilling,
+  canReadDelivery,
+  canReadInventory,
+  canReadMasterData,
+  canReadProcurement,
+  canReadProcurementMasterData,
+  canReadSales,
+  canWriteBilling,
+  canWriteDelivery,
+  canWritePurchaseOrder,
+  canWriteSales,
+} from "./roles";
 import { clearSession, loadSession } from "./session";
 import type { AuthProfile, AuthSession, DevTokenRequest } from "./types";
 import {
@@ -24,6 +39,18 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   canWriteSales: boolean;
   canReadSales: boolean;
+  canWriteDelivery: boolean;
+  canReadDelivery: boolean;
+  canWriteBilling: boolean;
+  canReadBilling: boolean;
+  canReadInventory: boolean;
+  canAdjustInventory: boolean;
+  canReadMasterData: boolean;
+  canReadProcurementMasterData: boolean;
+  canReadProcurement: boolean;
+  canWritePurchaseOrder: boolean;
+  canPostGoodsReceipt: boolean;
+  canPostInvoiceReceipt: boolean;
   login: (request?: DevTokenRequest) => Promise<AuthSession>;
   loginWithProfile: (profile: AuthProfile) => Promise<AuthSession>;
   logout: () => void;
@@ -92,6 +119,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: !!session?.accessToken,
       canWriteSales: canWriteSales(session?.roles ?? []),
       canReadSales: canReadSales(session?.roles ?? []),
+      canWriteDelivery: canWriteDelivery(session?.roles ?? []),
+      canReadDelivery: canReadDelivery(session?.roles ?? []),
+      canWriteBilling: canWriteBilling(session?.roles ?? []),
+      canReadBilling: canReadBilling(session?.roles ?? []),
+      canReadInventory: canReadInventory(session?.roles ?? []),
+      canAdjustInventory: canAdjustInventory(session?.roles ?? []),
+      canReadMasterData: canReadMasterData(session?.roles ?? []),
+      canReadProcurementMasterData: canReadProcurementMasterData(
+        session?.roles ?? [],
+      ),
+      canReadProcurement: canReadProcurement(session?.roles ?? []),
+      canWritePurchaseOrder: canWritePurchaseOrder(session?.roles ?? []),
+      canPostGoodsReceipt: canPostGoodsReceipt(session?.roles ?? []),
+      canPostInvoiceReceipt: canPostInvoiceReceipt(session?.roles ?? []),
       login,
       loginWithProfile,
       logout,

@@ -1,14 +1,29 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BookOpen,
   Code2,
   LayoutDashboard,
   ShoppingBag,
   ShoppingCart,
   Warehouse,
 } from "lucide-react";
+import type { SapMessageKey } from "../i18n";
 import {
   FEATURE_LOGIN_ROUTE,
   FEATURE_ROUTE,
+  GOODS_RECEIPTS_ROUTE,
+  INVENTORY_MOVEMENTS_ROUTE,
+  INVENTORY_ROUTE,
+  INVENTORY_STOCK_ROUTE,
+  INVOICE_RECEIPTS_ROUTE,
+  INVOICE_RECEIPTS_UI_ENABLED,
+  MASTERDATA_PROCUREMENT_ROUTE,
+  MASTERDATA_ROUTE,
+  MASTERDATA_SALES_ROUTE,
+  PROCUREMENT_ROUTE,
+  PURCHASE_ORDERS_ROUTE,
+  SALES_BILLING_ROUTE,
+  SALES_DELIVERIES_ROUTE,
   SALES_ORDERS_ROUTE,
 } from "../constants";
 
@@ -16,7 +31,8 @@ export type NavItemStatus = "ready" | "planned";
 
 export type SapNavItem = {
   id: string;
-  title: string;
+  /** i18n key under nav.* (defaults to nav.{id}) */
+  titleKey: SapMessageKey;
   href?: string;
   /** lucide-react icon；建议一级菜单配置，便于扫读 */
   icon?: LucideIcon;
@@ -24,96 +40,212 @@ export type SapNavItem = {
   matchPrefix?: string;
   status?: NavItemStatus;
   requireAuth?: boolean;
+  /** 销售订单写（Admin / SalesClerk） */
   requireWrite?: boolean;
+  /** 外向交货写（Admin / Inventory） */
+  requireDeliveryWrite?: boolean;
+  /** 开票创建（仅 Admin） */
+  requireBillingWrite?: boolean;
+  /** 手工库存调整（Admin / Inventory） */
+  requireInventoryAdjust?: boolean;
+  /** 采购主数据读（Admin / Buyer） */
+  requireProcurementMd?: boolean;
+  /** 采购订单写（Admin / Buyer） */
+  requirePoWrite?: boolean;
+  /** 收货过账（Admin / Inventory） */
+  requireGrPost?: boolean;
+  /** 发票校验写（Admin / Buyer）；且受 INVOICE_RECEIPTS_UI_ENABLED 门控 */
+  requireIrUi?: boolean;
   children?: SapNavItem[];
 };
 
 /**
  * SAP 沙盒侧栏菜单树。后续模块（库存/采购等）在此追加即可。
- *
- * 一级图标（lucide-react，项目已依赖）：
- * - 概览 LayoutDashboard · 开发 Code2 · 销售 ShoppingBag
- * - 库存 Warehouse · 采购 ShoppingCart
  */
 export const SAP_SANDBOX_NAV: SapNavItem[] = [
   {
     id: "overview",
-    title: "概览",
+    titleKey: "nav.overview",
     href: FEATURE_ROUTE,
     icon: LayoutDashboard,
   },
   {
     id: "dev",
-    title: "开发",
+    titleKey: "nav.dev",
     icon: Code2,
     children: [
       {
         id: "login",
-        title: "开发登录",
+        titleKey: "nav.login",
         href: FEATURE_LOGIN_ROUTE,
       },
     ],
   },
   {
     id: "sales",
-    title: "销售",
+    titleKey: "nav.sales",
     icon: ShoppingBag,
     children: [
       {
         id: "sales-orders",
-        title: "销售订单",
+        titleKey: "nav.sales-orders",
         matchPrefix: SALES_ORDERS_ROUTE,
         children: [
           {
             id: "orders-list",
-            title: "订单列表",
+            titleKey: "nav.orders-list",
             href: SALES_ORDERS_ROUTE,
             matchPrefix: SALES_ORDERS_ROUTE,
             requireAuth: true,
           },
           {
             id: "orders-new",
-            title: "新建订单",
+            titleKey: "nav.orders-new",
             href: `${SALES_ORDERS_ROUTE}/new`,
             requireAuth: true,
             requireWrite: true,
           },
         ],
       },
+      {
+        id: "sales-deliveries",
+        titleKey: "nav.sales-deliveries",
+        matchPrefix: SALES_DELIVERIES_ROUTE,
+        children: [
+          {
+            id: "deliveries-list",
+            titleKey: "nav.deliveries-list",
+            href: SALES_DELIVERIES_ROUTE,
+            matchPrefix: SALES_DELIVERIES_ROUTE,
+            requireAuth: true,
+          },
+          {
+            id: "deliveries-new",
+            titleKey: "nav.deliveries-new",
+            href: `${SALES_DELIVERIES_ROUTE}/new`,
+            requireAuth: true,
+            requireDeliveryWrite: true,
+          },
+        ],
+      },
+      {
+        id: "sales-billing",
+        titleKey: "nav.sales-billing",
+        matchPrefix: SALES_BILLING_ROUTE,
+        children: [
+          {
+            id: "billing-list",
+            titleKey: "nav.billing-list",
+            href: SALES_BILLING_ROUTE,
+            matchPrefix: SALES_BILLING_ROUTE,
+            requireAuth: true,
+          },
+          {
+            id: "billing-new",
+            titleKey: "nav.billing-new",
+            href: `${SALES_BILLING_ROUTE}/new`,
+            requireAuth: true,
+            requireBillingWrite: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "master-data",
+    titleKey: "nav.master-data",
+    icon: BookOpen,
+    matchPrefix: MASTERDATA_ROUTE,
+    children: [
+      {
+        id: "master-data-sales",
+        titleKey: "nav.master-data-sales",
+        href: MASTERDATA_SALES_ROUTE,
+        matchPrefix: MASTERDATA_SALES_ROUTE,
+        requireAuth: true,
+      },
+      {
+        id: "master-data-procurement",
+        titleKey: "nav.master-data-procurement",
+        href: MASTERDATA_PROCUREMENT_ROUTE,
+        matchPrefix: MASTERDATA_PROCUREMENT_ROUTE,
+        requireAuth: true,
+        requireProcurementMd: true,
+      },
     ],
   },
   {
     id: "inventory",
-    title: "库存",
+    titleKey: "nav.inventory",
     icon: Warehouse,
-    status: "planned",
+    matchPrefix: INVENTORY_ROUTE,
     children: [
       {
         id: "stock-query",
-        title: "库存查询",
-        status: "planned",
+        titleKey: "nav.stock-query",
+        href: INVENTORY_STOCK_ROUTE,
+        matchPrefix: INVENTORY_STOCK_ROUTE,
+        requireAuth: true,
       },
       {
         id: "goods-movement",
-        title: "货物移动",
-        status: "planned",
+        titleKey: "nav.goods-movement",
+        href: INVENTORY_MOVEMENTS_ROUTE,
+        matchPrefix: INVENTORY_MOVEMENTS_ROUTE,
+        requireAuth: true,
+      },
+      {
+        id: "stock-adjust",
+        titleKey: "nav.stock-adjust",
+        href: `${INVENTORY_STOCK_ROUTE}?adjust=1`,
+        requireAuth: true,
+        requireInventoryAdjust: true,
       },
     ],
   },
   {
     id: "procurement",
-    title: "采购",
+    titleKey: "nav.procurement",
     icon: ShoppingCart,
-    status: "planned",
+    matchPrefix: PROCUREMENT_ROUTE,
     children: [
       {
         id: "purchase-orders",
-        title: "采购订单",
-        status: "planned",
+        titleKey: "nav.purchase-orders",
+        href: PURCHASE_ORDERS_ROUTE,
+        matchPrefix: PURCHASE_ORDERS_ROUTE,
+        requireAuth: true,
+      },
+      {
+        id: "purchase-orders-new",
+        titleKey: "nav.purchase-orders-new",
+        href: `${PURCHASE_ORDERS_ROUTE}/new`,
+        requireAuth: true,
+        requirePoWrite: true,
+      },
+      {
+        id: "goods-receipts",
+        titleKey: "nav.goods-receipts",
+        href: GOODS_RECEIPTS_ROUTE,
+        matchPrefix: GOODS_RECEIPTS_ROUTE,
+        requireAuth: true,
+      },
+      {
+        id: "invoice-receipts",
+        titleKey: "nav.invoice-receipts",
+        href: INVOICE_RECEIPTS_ROUTE,
+        matchPrefix: INVOICE_RECEIPTS_ROUTE,
+        requireAuth: true,
+        requireIrUi: true,
       },
     ],
   },
 ];
+
+/** True when IR nav/pages may be shown (D-FE-IR-SHIP). */
+export function isInvoiceReceiptsUiEnabled(): boolean {
+  return INVOICE_RECEIPTS_UI_ENABLED;
+}
 
 export function isNavItemActive(
   item: SapNavItem,
@@ -124,9 +256,62 @@ export function isNavItemActive(
       return pathname === FEATURE_ROUTE || pathname === `${FEATURE_ROUTE}/`;
     }
     if (item.href === SALES_ORDERS_ROUTE) {
-      // 列表页激活；新建/详情不算「列表」独占，但 matchPrefix 用于父级展开
       return (
         pathname === SALES_ORDERS_ROUTE || pathname === `${SALES_ORDERS_ROUTE}/`
+      );
+    }
+    if (item.href === SALES_DELIVERIES_ROUTE) {
+      return (
+        pathname === SALES_DELIVERIES_ROUTE ||
+        pathname === `${SALES_DELIVERIES_ROUTE}/`
+      );
+    }
+    if (item.href === SALES_BILLING_ROUTE) {
+      return (
+        pathname === SALES_BILLING_ROUTE ||
+        pathname === `${SALES_BILLING_ROUTE}/`
+      );
+    }
+    if (item.href === INVENTORY_STOCK_ROUTE) {
+      return (
+        pathname === INVENTORY_STOCK_ROUTE ||
+        pathname === `${INVENTORY_STOCK_ROUTE}/`
+      );
+    }
+    if (item.href === INVENTORY_MOVEMENTS_ROUTE) {
+      return (
+        pathname === INVENTORY_MOVEMENTS_ROUTE ||
+        pathname === `${INVENTORY_MOVEMENTS_ROUTE}/`
+      );
+    }
+    if (item.href === MASTERDATA_SALES_ROUTE) {
+      return (
+        pathname === MASTERDATA_SALES_ROUTE ||
+        pathname === `${MASTERDATA_SALES_ROUTE}/`
+      );
+    }
+    if (item.href === MASTERDATA_PROCUREMENT_ROUTE) {
+      return (
+        pathname === MASTERDATA_PROCUREMENT_ROUTE ||
+        pathname === `${MASTERDATA_PROCUREMENT_ROUTE}/`
+      );
+    }
+    if (item.href === PURCHASE_ORDERS_ROUTE) {
+      return (
+        pathname === PURCHASE_ORDERS_ROUTE ||
+        pathname === `${PURCHASE_ORDERS_ROUTE}/`
+      );
+    }
+    if (item.href === GOODS_RECEIPTS_ROUTE) {
+      return (
+        pathname === GOODS_RECEIPTS_ROUTE ||
+        pathname === `${GOODS_RECEIPTS_ROUTE}/`
+      );
+    }
+    if (item.href === INVOICE_RECEIPTS_ROUTE) {
+      return (
+        pathname === INVOICE_RECEIPTS_ROUTE ||
+        pathname === `${INVOICE_RECEIPTS_ROUTE}/`
       );
     }
     if (pathname === item.href || pathname.startsWith(`${item.href}/`)) {
@@ -185,11 +370,16 @@ function normalizeNavQuery(query: string): string {
   return query.trim().toLowerCase();
 }
 
-export function navItemMatchesQuery(item: SapNavItem, query: string): boolean {
+export function navItemMatchesQuery(
+  item: SapNavItem,
+  query: string,
+  resolveTitle: (item: SapNavItem) => string,
+): boolean {
   const q = normalizeNavQuery(query);
   if (!q) return true;
   return (
-    item.title.toLowerCase().includes(q) || item.id.toLowerCase().includes(q)
+    resolveTitle(item).toLowerCase().includes(q) ||
+    item.id.toLowerCase().includes(q)
   );
 }
 
@@ -200,12 +390,13 @@ export function navItemMatchesQuery(item: SapNavItem, query: string): boolean {
 export function filterNavTree(
   items: SapNavItem[],
   query: string,
+  resolveTitle: (item: SapNavItem) => string,
 ): SapNavItem[] {
   const q = normalizeNavQuery(query);
   if (!q) return items;
 
   const walk = (item: SapNavItem): SapNavItem | null => {
-    const selfMatch = navItemMatchesQuery(item, q);
+    const selfMatch = navItemMatchesQuery(item, q, resolveTitle);
     if (!item.children?.length) {
       return selfMatch ? item : null;
     }

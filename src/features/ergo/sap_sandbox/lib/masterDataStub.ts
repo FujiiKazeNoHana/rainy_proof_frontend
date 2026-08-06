@@ -19,13 +19,18 @@ export const MATERIALS: (CodeName & { defaultUnit: string })[] = [
   { code: "FG-NONE", name: "不存在物料（负例）", defaultUnit: "EA" },
 ];
 
-export const ORDER_STATUSES: { code: string; label: string }[] = [
-  { code: "Open", label: "打开" },
-  { code: "PartiallyDelivered", label: "部分交货" },
-  { code: "Delivered", label: "已交货" },
-  { code: "PartiallyBilled", label: "部分开票" },
-  { code: "Billed", label: "已开票" },
-  { code: "Cancelled", label: "已取消" },
-];
+/** Status codes for filters; labels via i18n `status.order.*`. */
+export const ORDER_STATUS_CODES = [
+  "Open",
+  "PartiallyDelivered",
+  "Delivered",
+  "PartiallyBilled",
+  "Billed",
+  "Cancelled",
+] as const;
+
+/** @deprecated Prefer ORDER_STATUS_CODES + i18n labels */
+export const ORDER_STATUSES: { code: string; label: string }[] =
+  ORDER_STATUS_CODES.map((code) => ({ code, label: code }));
 
 export const CURRENCIES = ["CNY"] as const;

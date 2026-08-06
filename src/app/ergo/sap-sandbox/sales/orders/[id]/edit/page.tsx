@@ -22,7 +22,9 @@ import {
 } from "@/features/ergo/sap_sandbox/components/OrderLineEditor";
 import { OrderStatusBadge } from "@/features/ergo/sap_sandbox/components/OrderStatusBadge";
 import { RequireAuth } from "@/features/ergo/sap_sandbox/components/RequireAuth";
+import { useSalesOrderMasterData } from "@/features/ergo/sap_sandbox/hooks/useSalesOrderMasterData";
 import { SALES_ORDERS_ROUTE } from "@/features/ergo/sap_sandbox/constants";
+import { useSapI18n } from "@/features/ergo/sap_sandbox/i18n";
 import { canEditOrder } from "@/features/ergo/sap_sandbox/lib/orderRules";
 import type { SalesOrder } from "@/features/ergo/sap_sandbox/lib/types";
 
@@ -42,6 +44,7 @@ function toDrafts(order: SalesOrder): LineDraft[] {
 }
 
 function EditOrderInner() {
+  const { t, orderStatus, errorMessage } = useSapI18n();
   const params = useParams<{ id: string }>();
   const id = params.id;
   const router = useRouter();
@@ -54,6 +57,14 @@ function EditOrderInner() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
+
+  const salesOrgForMd = order?.salesOrgCode ?? "";
+  const {
+    plants,
+    materials,
+    loading: mdLoading,
+    source: mdSource,
+  } = useSalesOrderMasterData(salesOrgForMd);
 
   useEffect(() => {
     void (async () => {
@@ -76,7 +87,9 @@ function EditOrderInner() {
 
   if (loading) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">加载订单…</div>
+      <div className="p-4 text-sm text-muted-foreground">
+        {t("orders.edit.loading")}
+      </div>
     );
   }
 
@@ -88,7 +101,7 @@ function EditOrderInner() {
           href={SALES_ORDERS_ROUTE}
           className={cn(buttonVariants({ variant: "outline" }))}
         >
-          返回列表
+          {t("common.backToList")}
         </Link>
       </div>
     );
@@ -98,13 +111,13 @@ function EditOrderInner() {
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          当前不可编辑（角色或状态限制）。
+          {t("orders.edit.notEditable")}
         </p>
         <Link
           href={`${SALES_ORDERS_ROUTE}/${order.id}`}
           className={cn(buttonVariants({ variant: "outline" }))}
         >
-          返回详情
+          {t("orders.edit.backToDetail")}
         </Link>
       </div>
     );
@@ -113,17 +126,17 @@ function EditOrderInner() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (lines.length === 0) {
-      toast.error("至少一行");
+      toast.error(t("orders.edit.toast.atLeastOneLine"));
       return;
     }
     if (lines.some((l) => !l.orderedQty || l.orderedQty <= 0)) {
-      toast.error("数量必须大于 0");
+      toast.error(t("orders.edit.toast.qtyMustBePositive"));
       return;
     }
     if (
       lines.some((l) => l.orderedQty < (l.deliveredQty ?? 0))
     ) {
-      toast.error("订购量不能小于已交量");
+      toast.error(t("orders.edit.toast.qtyBelowDelivered"));
       return;
     }
     setBusy(true);
@@ -143,25 +156,22 @@ function EditOrderInner() {
           remark: l.remark || null,
         })),
       });
-      toast.success("订单已更新");
+      toast.success(t("orders.edit.toast.updated"));
       router.replace(`${SALES_ORDERS_ROUTE}/${next.id}`);
     } catch (err) {
       setError(err);
       if (err instanceof ApiError) {
-        if (err.errorCode === "CONCURRENCY_CONFLICT") {
-          toast.error("版本冲突，请刷新后重试");
-        } else if (err.errorCode === "VALIDATION_FAILED") {
-          toast.error("校验失败，请查看明细");
-        } else if (err.status === 403) {
-          toast.error("无权限修改订单");
-        } else {
-          toast.error(err.message);
-        }
+        toast.error(errorMessage(err.errorCode, err.message));
       }
     } finally {
       setBusy(false);
     }
   };
+
+  const metaSuffix =
+    mdSource === "api"
+      ? t("orders.edit.meta.masterDataApi")
+      : t("orders.edit.meta.masterDataStub");
 
   return (
     <form className="flex flex-col gap-6" onSubmit={(e) => void onSubmit(e)}>
@@ -169,22 +179,27 @@ function EditOrderInner() {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-mono text-xl font-semibold tracking-tight">
-              编辑 {order.number}
+              {t("orders.edit.title", { number: order.number })}
             </h2>
             <OrderStatusBadge
               status={order.status}
-              label={order.statusLabel || order.status}
+              label={orderStatus(order.status, order.statusLabel)}
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            PUT 整单替换 · version={order.version} · {order.customerCode}
+            {t("orders.edit.meta.putReplace", {
+              version: order.version,
+              customerCode: order.customerCode,
+            })}
+            {metaSuffix}
+            {mdLoading ? t("orders.edit.meta.loadingMasterData") : ""}
           </p>
         </div>
         <Link
           href={`${SALES_ORDERS_ROUTE}/${order.id}`}
           className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
         >
-          返回详情
+          {t("orders.edit.backToDetail")}
         </Link>
       </div>
 
@@ -192,18 +207,25 @@ function EditOrderInner() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <Label>销售组织</Label>
-          <Input value={`${order.salesOrgCode}（只读）`} disabled />
+          <Label>{t("orders.edit.field.salesOrg")}</Label>
+          <Input
+            value={t("orders.edit.field.salesOrgReadonly", {
+              code: order.salesOrgCode,
+            })}
+            disabled
+          />
         </div>
         <div className="grid gap-1.5">
-          <Label>客户</Label>
+          <Label>{t("orders.edit.field.customer")}</Label>
           <Input
             value={`${order.customerCode} · ${order.customerName}`}
             disabled
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="deliveryDate">要求交货日</Label>
+          <Label htmlFor="deliveryDate">
+            {t("orders.edit.field.requestedDeliveryDate")}
+          </Label>
           <Input
             id="deliveryDate"
             type="date"
@@ -212,7 +234,7 @@ function EditOrderInner() {
           />
         </div>
         <div className="grid gap-1.5 sm:col-span-2">
-          <Label htmlFor="remark">备注</Label>
+          <Label htmlFor="remark">{t("common.remark")}</Label>
           <Textarea
             id="remark"
             value={remark}
@@ -222,11 +244,16 @@ function EditOrderInner() {
         </div>
       </div>
 
-      <OrderLineEditor lines={lines} onChange={setLines} />
+      <OrderLineEditor
+        lines={lines}
+        onChange={setLines}
+        materials={materials}
+        plants={plants}
+      />
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={busy}>
-          {busy ? "保存中…" : "保存变更"}
+        <Button type="submit" disabled={busy || mdLoading}>
+          {busy ? t("orders.edit.saving") : t("orders.edit.save")}
         </Button>
       </div>
     </form>

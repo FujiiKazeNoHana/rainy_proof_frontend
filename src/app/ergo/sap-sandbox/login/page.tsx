@@ -23,8 +23,10 @@ import {
   FEATURE_ROUTE,
   SALES_ORDERS_ROUTE,
 } from "@/features/ergo/sap_sandbox/constants";
+import { useSapI18n } from "@/features/ergo/sap_sandbox/i18n";
 
 function LoginForm() {
+  const { t, errorMessage } = useSapI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") || SALES_ORDERS_ROUTE;
@@ -39,7 +41,9 @@ function LoginForm() {
 
   const [profiles, setProfiles] = useState<AuthProfile[]>([]);
   const [subject, setSubject] = useState("demo-sales");
-  const [displayName, setDisplayName] = useState("销售内勤");
+  const [displayName, setDisplayName] = useState(() =>
+    t("login.defaultDisplayName"),
+  );
   const [rolesText, setRolesText] = useState("SalesClerk");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -85,11 +89,15 @@ function LoginForm() {
     setError(null);
     try {
       await loginWithProfile(profile);
-      toast.success(`已登录为 ${profile.name}`);
+      toast.success(t("login.toast.loggedInAs", { name: profile.name }));
       goAfterLogin();
     } catch (err) {
       setError(err);
-      toast.error(err instanceof ApiError ? err.message : "登录失败");
+      toast.error(
+        err instanceof ApiError
+          ? errorMessage(err.errorCode, err.message)
+          : t("login.toast.failed"),
+      );
     } finally {
       setBusy(false);
     }
@@ -104,31 +112,43 @@ function LoginForm() {
         .map((r) => r.trim())
         .filter(Boolean);
       await login({ subject, displayName, roles });
-      toast.success("开发 Token 已签发");
+      toast.success(t("login.toast.tokenIssued"));
       goAfterLogin();
     } catch (err) {
       setError(err);
-      toast.error(err instanceof ApiError ? err.message : "登录失败");
+      toast.error(
+        err instanceof ApiError
+          ? errorMessage(err.errorCode, err.message)
+          : t("login.toast.failed"),
+      );
     } finally {
       setBusy(false);
     }
   };
 
+  const gatewayStatus =
+    gatewayOk === null
+      ? t("login.gateway.checking")
+      : gatewayOk
+        ? t("login.gateway.healthy")
+        : t("login.gateway.unreachable");
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold tracking-tight">开发登录桩</h2>
+        <h2 className="text-xl font-semibold tracking-tight">
+          {t("login.title")}
+        </h2>
         <p className="text-sm text-muted-foreground">
           Gateway：<code className="font-mono text-xs">{apiBase}</code>
-          {gatewayOk === null
-            ? " · 检查中…"
-            : gatewayOk
-              ? " · 健康"
-              : " · 不可达（请先启动 Gateway :5100）"}
+          {gatewayStatus}
         </p>
         {isAuthenticated ? (
           <p className="text-sm text-muted-foreground">
-            当前：{session?.displayName}（{(session?.roles ?? []).join(", ")}）
+            {t("login.currentSession", {
+              displayName: session?.displayName ?? "",
+              roles: (session?.roles ?? []).join(", "),
+            })}
           </p>
         ) : null}
       </div>
@@ -137,8 +157,10 @@ function LoginForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">预设角色</CardTitle>
-          <CardDescription>对应 GET /api/auth/profiles</CardDescription>
+          <CardTitle className="text-base">
+            {t("login.presetRoles.title")}
+          </CardTitle>
+          <CardDescription>{t("login.profiles.hint")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {profiles.map((p) => (
@@ -151,7 +173,7 @@ function LoginForm() {
             >
               <span className="font-medium">{p.name}</span>
               <span className="text-muted-foreground">
-                — {p.description}（{p.roles.join(", ")}）
+                — {p.description} ({p.roles.join(", ")})
               </span>
             </Button>
           ))}
@@ -160,12 +182,14 @@ function LoginForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">自定义 Token</CardTitle>
-          <CardDescription>POST /api/auth/dev-token</CardDescription>
+          <CardTitle className="text-base">
+            {t("login.customToken.title")}
+          </CardTitle>
+          <CardDescription>{t("login.customToken.hint")}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="subject">subject</Label>
+            <Label htmlFor="subject">{t("login.customToken.subject")}</Label>
             <Input
               id="subject"
               value={subject}
@@ -173,7 +197,9 @@ function LoginForm() {
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="displayName">displayName</Label>
+            <Label htmlFor="displayName">
+              {t("login.customToken.displayName")}
+            </Label>
             <Input
               id="displayName"
               value={displayName}
@@ -181,7 +207,7 @@ function LoginForm() {
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="roles">roles（逗号分隔）</Label>
+            <Label htmlFor="roles">{t("login.customToken.rolesLabel")}</Label>
             <Input
               id="roles"
               value={rolesText}
@@ -190,13 +216,13 @@ function LoginForm() {
           </div>
           <div className="flex gap-2">
             <Button disabled={busy} onClick={() => void handleCustom()}>
-              获取 Token
+              {t("login.customToken.getToken")}
             </Button>
             <Link
               href={FEATURE_ROUTE}
               className={cn(buttonVariants({ variant: "ghost" }))}
             >
-              返回模块
+              {t("login.backToModule")}
             </Link>
           </div>
         </CardContent>
@@ -206,10 +232,14 @@ function LoginForm() {
 }
 
 export default function SapSandboxLoginPage() {
+  const { t } = useSapI18n();
+
   return (
     <Suspense
       fallback={
-        <div className="p-8 text-sm text-muted-foreground">加载登录页…</div>
+        <div className="p-8 text-sm text-muted-foreground">
+          {t("login.loading")}
+        </div>
       }
     >
       <LoginForm />

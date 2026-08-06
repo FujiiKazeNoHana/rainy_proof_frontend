@@ -7,9 +7,11 @@ import {
   FEATURE_LOGIN_ROUTE,
   FEATURE_ROUTE,
 } from "@/features/ergo/sap_sandbox/constants";
+import { useSapI18n } from "../i18n";
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { ready, isAuthenticated } = useAuth();
+  const { t } = useSapI18n();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -24,7 +26,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!ready) {
     return (
       <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
-        正在恢复登录状态…
+        {t("auth.requireAuth.restoring")}
       </div>
     );
   }
@@ -32,7 +34,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) {
     return (
       <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
-        正在跳转登录…
+        {t("auth.requireAuth.redirecting")}
       </div>
     );
   }

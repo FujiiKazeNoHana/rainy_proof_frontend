@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { AuthProvider } from "@/shared/auth";
 import { Toaster } from "@/shared/components/ui/sonner";
 import { SapSandboxShell } from "@/features/ergo/sap_sandbox/components/SapSandboxShell";
+import { SapLocaleProvider } from "@/features/ergo/sap_sandbox/i18n";
 
 export const metadata: Metadata = {
-  title: "SAP 沙盒 · Ergo",
-  description: "销售订单等 SAP 学习模块（对接 Gateway）",
+  title: "SAP Sandbox · Ergo",
+  description: "SAP learning module (Gateway) — sales orders & deliveries",
 };
 
 export default function SapSandboxLayout({
@@ -15,8 +16,10 @@ export default function SapSandboxLayout({
 }) {
   return (
     <AuthProvider>
-      <SapSandboxShell>{children}</SapSandboxShell>
-      <Toaster />
+      <SapLocaleProvider>
+        <SapSandboxShell>{children}</SapSandboxShell>
+        <Toaster />
+      </SapLocaleProvider>
     </AuthProvider>
   );
 }

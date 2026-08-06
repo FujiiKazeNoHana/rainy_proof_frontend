@@ -7,9 +7,11 @@ import { ChevronDown, ChevronRight, Search, Star, X } from "lucide-react";
 import { useAuth } from "@/shared/auth";
 import { Input } from "@/shared/components/ui/input";
 import { cn } from "@/shared/lib/utils";
+import { useSapI18n } from "../i18n";
 import {
   countNavLeaves,
   filterNavTree,
+  isInvoiceReceiptsUiEnabled,
   isNavBranchOpen,
   isNavItemActive,
   navItemMatchesQuery,
@@ -25,6 +27,7 @@ function FavoriteStarButton({
   itemId: string;
   labeled?: string;
 }) {
+  const { t } = useSapI18n();
   const { isFavorite, toggleFavorite } = useNavFavorites();
   const active = isFavorite(itemId);
 
@@ -38,8 +41,12 @@ function FavoriteStarButton({
       )}
       aria-label={
         active
-          ? `取消收藏${labeled ? `「${labeled}」` : ""}`
-          : `收藏${labeled ? `「${labeled}」` : ""}`
+          ? labeled
+            ? t("nav.favorites.unfavoriteNamed", { title: labeled })
+            : t("nav.favorites.unfavorite")
+          : labeled
+            ? t("nav.favorites.favoriteNamed", { title: labeled })
+            : t("nav.favorites.favorite")
       }
       aria-pressed={active}
       onClick={(e) => {
@@ -64,12 +71,31 @@ function FavoritesSection({
   query: string;
 }) {
   const pathname = usePathname();
+  const { t } = useSapI18n();
   const { ready, favorites, removeFavorite } = useNavFavorites();
-  const { canWriteSales } = useAuth();
+  const {
+    canWriteSales,
+    canWriteDelivery,
+    canWriteBilling,
+    canAdjustInventory,
+    canReadProcurementMasterData,
+    canWritePurchaseOrder,
+    canPostGoodsReceipt,
+  } = useAuth();
+  const resolveTitle = (item: SapNavItem) => t(item.titleKey);
 
   const visible = favorites.filter((item) => {
     if (item.requireWrite && !canWriteSales) return false;
-    if (query.trim() && !navItemMatchesQuery(item, query)) return false;
+    if (item.requireDeliveryWrite && !canWriteDelivery) return false;
+    if (item.requireBillingWrite && !canWriteBilling) return false;
+    if (item.requireInventoryAdjust && !canAdjustInventory) return false;
+    if (item.requireProcurementMd && !canReadProcurementMasterData) return false;
+    if (item.requirePoWrite && !canWritePurchaseOrder) return false;
+    if (item.requireGrPost && !canPostGoodsReceipt) return false;
+    if (item.requireIrUi && !isInvoiceReceiptsUiEnabled()) return false;
+    if (query.trim() && !navItemMatchesQuery(item, query, resolveTitle)) {
+      return false;
+    }
     return true;
   });
 
@@ -81,17 +107,20 @@ function FavoritesSection({
     <div className="space-y-1 border-b border-sidebar-border pb-3">
       <div className="flex items-center gap-1.5 px-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
         <Star className="size-3 fill-current text-amber-600/80" />
-        我的收藏
+        {t("nav.favorites.title")}
       </div>
       {!ready ? (
-        <p className="px-2 py-1 text-xs text-muted-foreground">加载中…</p>
+        <p className="px-2 py-1 text-xs text-muted-foreground">
+          {t("nav.favorites.loading")}
+        </p>
       ) : visible.length === 0 ? (
         <p className="px-2 py-1 text-xs leading-relaxed text-muted-foreground">
-          点击菜单旁星标收藏常用功能，数据保存在本机浏览器。
+          {t("nav.favorites.emptyHint")}
         </p>
       ) : (
         <ul className="space-y-0.5">
           {visible.map((item) => {
+            const title = resolveTitle(item);
             const active = isNavItemActive(item, pathname);
             return (
               <li key={item.id} className="group flex items-center gap-0.5">
@@ -106,12 +135,14 @@ function FavoritesSection({
                   )}
                   aria-current={active ? "page" : undefined}
                 >
-                  {item.title}
+                  {title}
                 </Link>
                 <button
                   type="button"
                   className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-70 transition-opacity hover:bg-sidebar-accent hover:text-foreground group-hover:opacity-100"
-                  aria-label={`取消收藏「${item.title}」`}
+                  aria-label={t("nav.favorites.unfavoriteNamed", {
+                    title,
+                  })}
                   onClick={() => removeFavorite(item.id)}
                 >
                   <Star className="size-3.5 fill-current text-amber-600" />
@@ -137,7 +168,17 @@ function NavNode({
   forceOpen?: boolean;
 }) {
   const pathname = usePathname();
-  const { canWriteSales } = useAuth();
+  const { t } = useSapI18n();
+  const {
+    canWriteSales,
+    canWriteDelivery,
+    canWriteBilling,
+    canAdjustInventory,
+    canReadProcurementMasterData,
+    canWritePurchaseOrder,
+    canPostGoodsReceipt,
+  } = useAuth();
+  const title = t(item.titleKey);
   const hasChildren = (item.children?.length ?? 0) > 0;
   const planned = item.status === "planned";
   const active = !hasChildren && isNavItemActive(item, pathname);
@@ -154,6 +195,27 @@ function NavNode({
   if (item.requireWrite && !canWriteSales) {
     return null;
   }
+  if (item.requireDeliveryWrite && !canWriteDelivery) {
+    return null;
+  }
+  if (item.requireBillingWrite && !canWriteBilling) {
+    return null;
+  }
+  if (item.requireInventoryAdjust && !canAdjustInventory) {
+    return null;
+  }
+  if (item.requireProcurementMd && !canReadProcurementMasterData) {
+    return null;
+  }
+  if (item.requirePoWrite && !canWritePurchaseOrder) {
+    return null;
+  }
+  if (item.requireGrPost && !canPostGoodsReceipt) {
+    return null;
+  }
+  if (item.requireIrUi && !isInvoiceReceiptsUiEnabled()) {
+    return null;
+  }
 
   const pad = depth === 0 ? 8 : 12 + depth * 12;
   const expanded = forceOpen || open;
@@ -166,11 +228,13 @@ function NavNode({
         style={{ paddingLeft: pad }}
       >
         <span className="flex min-w-0 items-center gap-2">
-          {Icon ? <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden /> : null}
-          <span>{item.title}</span>
+          {Icon ? (
+            <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
+          ) : null}
+          <span>{title}</span>
         </span>
         <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-          待补
+          {t("nav.plannedBadge")}
         </span>
       </div>
     );
@@ -200,10 +264,10 @@ function NavNode({
           {Icon ? (
             <Icon className="size-3.5 shrink-0 opacity-80" aria-hidden />
           ) : null}
-          <span className="flex-1 font-medium">{item.title}</span>
+          <span className="flex-1 font-medium">{title}</span>
           {planned ? (
             <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              待补
+              {t("nav.plannedBadge")}
             </span>
           ) : null}
         </button>
@@ -249,9 +313,9 @@ function NavNode({
         {Icon ? (
           <Icon className="size-3.5 shrink-0 opacity-80" aria-hidden />
         ) : null}
-        <span className="truncate">{item.title}</span>
+        <span className="truncate">{title}</span>
       </Link>
-      <FavoriteStarButton itemId={item.id} labeled={item.title} />
+      <FavoriteStarButton itemId={item.id} labeled={title} />
     </div>
   );
 }
@@ -263,6 +327,7 @@ function NavSearch({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { t } = useSapI18n();
   return (
     <div className="relative">
       <Search
@@ -272,15 +337,15 @@ function NavSearch({
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="搜索功能…"
-        aria-label="搜索菜单"
+        placeholder={t("nav.search.placeholder")}
+        aria-label={t("nav.search.ariaLabel")}
         className="h-8 bg-background/60 pr-8 pl-8 text-sm"
       />
       {value ? (
         <button
           type="button"
           className="absolute top-1/2 right-1.5 inline-flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-          aria-label="清除搜索"
+          aria-label={t("nav.search.clear")}
           onClick={() => onChange("")}
         >
           <X className="size-3.5" />
@@ -297,12 +362,17 @@ export function SapSandboxSidebar({
   className?: string;
   onNavigate?: () => void;
 }) {
+  const { t } = useSapI18n();
   const [query, setQuery] = useState("");
   const searching = query.trim().length > 0;
+  const resolveTitle = useMemo(
+    () => (item: SapNavItem) => t(item.titleKey),
+    [t],
+  );
 
   const filteredNav = useMemo(
-    () => filterNavTree(SAP_SANDBOX_NAV, query),
-    [query],
+    () => filterNavTree(SAP_SANDBOX_NAV, query, resolveTitle),
+    [query, resolveTitle],
   );
   const resultCount = useMemo(
     () => countNavLeaves(filteredNav),
@@ -312,7 +382,7 @@ export function SapSandboxSidebar({
   return (
     <nav
       className={cn("flex h-full flex-col gap-3", className)}
-      aria-label="SAP 沙盒菜单"
+      aria-label={t("nav.aria.menu")}
     >
       <NavSearch value={query} onChange={setQuery} />
 
@@ -321,17 +391,19 @@ export function SapSandboxSidebar({
       <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto">
         <div className="flex items-baseline justify-between gap-2 px-2 pb-1">
           <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            {searching ? "搜索结果" : "全部功能"}
+            {searching
+              ? t("nav.section.searchResults")
+              : t("nav.section.allFeatures")}
           </span>
           {searching ? (
             <span className="text-[11px] text-muted-foreground">
-              {resultCount} 项
+              {t("nav.search.resultCount", { count: resultCount })}
             </span>
           ) : null}
         </div>
         {searching && filteredNav.length === 0 ? (
           <p className="px-2 py-2 text-xs text-muted-foreground">
-            未找到与「{query.trim()}」匹配的功能
+            {t("nav.search.noResults", { query: query.trim() })}
           </p>
         ) : (
           filteredNav.map((item) => (
@@ -347,7 +419,7 @@ export function SapSandboxSidebar({
       </div>
 
       <p className="border-t border-sidebar-border pt-3 text-[11px] leading-relaxed text-muted-foreground">
-        收藏存于本机 localStorage，刷新保留；未对接账号同步。
+        {t("nav.favorites.storageNote")}
       </p>
     </nav>
   );
