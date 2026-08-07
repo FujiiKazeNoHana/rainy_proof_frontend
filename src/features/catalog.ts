@@ -37,6 +37,14 @@ export const FEATURE_CATALOG: FeatureEntry[] = [
     href: "/ergo/sap-sandbox",
     status: "ready",
   },
+  {
+    owner: "ergo",
+    id: "markdown_lab",
+    title: "Markdown 实验室",
+    description: "实时编辑与预览 Markdown，支持 Mermaid 文本绘图。",
+    href: "/ergo/markdown-lab",
+    status: "ready",
+  },
 ];
 
 /** Methods available inside 排序可视化. */
