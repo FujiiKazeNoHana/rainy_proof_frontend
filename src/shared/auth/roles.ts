@@ -96,3 +96,13 @@ export function canPostGoodsReceipt(roles: readonly string[]): boolean {
 export function canPostInvoiceReceipt(roles: readonly string[]): boolean {
   return roles.includes("Admin") || roles.includes("Buyer");
 }
+
+/** 财务应收读：finance.ar.read */
+export function canReadAr(roles: readonly string[]): boolean {
+  return roles.includes("Admin") || roles.includes("SalesClerk");
+}
+
+/** 财务应付读：finance.ap.read */
+export function canReadAp(roles: readonly string[]): boolean {
+  return roles.includes("Admin") || roles.includes("Buyer");
+}

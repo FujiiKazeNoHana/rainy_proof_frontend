@@ -96,6 +96,18 @@ export function invoiceReceiptStatusLabel(
   return fallback || status;
 }
 
+export function accountingDocumentStatusLabel(
+  locale: SapLocale,
+  status: string,
+  fallback?: string | null,
+): string {
+  const key = `status.accountingDocument.${status}` as SapMessageKey;
+  if (key in catalogs.zh) {
+    return translate(locale, key);
+  }
+  return fallback || status;
+}
+
 export function movementTypeLabel(
   locale: SapLocale,
   type: string,
@@ -133,6 +145,10 @@ export function mapErrorMessage(
   const procurementKey = `errors.procurement.${errorCode}` as SapMessageKey;
   if (procurementKey in catalogs.zh) {
     return translate(locale, procurementKey);
+  }
+  const financeKey = `errors.finance.${errorCode}` as SapMessageKey;
+  if (financeKey in catalogs.zh) {
+    return translate(locale, financeKey);
   }
   const billingKey = `errors.billing.${errorCode}` as SapMessageKey;
   if (billingKey in catalogs.zh) {

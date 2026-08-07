@@ -39,6 +39,7 @@ import {
   PURCHASE_ORDERS_ROUTE,
 } from "@/features/ergo/sap_sandbox/constants";
 import { useSapI18n } from "@/features/ergo/sap_sandbox/i18n";
+import { isFinanceAccountingUiEnabled } from "@/features/ergo/sap_sandbox/lib/financeRules";
 import {
   canCancelPo,
   canEditPo,
@@ -61,6 +62,7 @@ function PurchaseOrderDetailInner() {
     purchaseOrderStatus,
     goodsReceiptStatus,
     invoiceReceiptStatus,
+    accountingDocumentStatus,
     errorMessage,
   } = useSapI18n();
   const params = useParams<{ id: string }>();
@@ -69,6 +71,7 @@ function PurchaseOrderDetailInner() {
     canWritePurchaseOrder,
     canPostGoodsReceipt,
     canPostInvoiceReceipt,
+    canReadAp,
   } = useAuth();
 
   const [order, setOrder] = useState<PurchaseOrder | null>(null);
@@ -129,6 +132,8 @@ function PurchaseOrderDetailInner() {
         return t("purchaseOrders.detail.flow.type.GoodsReceipt");
       case "InvoiceReceipt":
         return t("purchaseOrders.detail.flow.type.InvoiceReceipt");
+      case "AccountingDocumentAp":
+        return t("finance.flow.AccountingDocumentAp");
       default:
         return type;
     }
@@ -140,6 +145,9 @@ function PurchaseOrderDetailInner() {
     }
     if (node.type === "InvoiceReceipt") {
       return invoiceReceiptStatus(node.status, node.statusLabel);
+    }
+    if (node.type === "AccountingDocumentAp") {
+      return accountingDocumentStatus(node.status, node.statusLabel);
     }
     return purchaseOrderStatus(node.status, node.statusLabel);
   };
@@ -368,17 +376,30 @@ function PurchaseOrderDetailInner() {
                   </TableCell>
                 </TableRow>
               ) : (
-                flowNodes.map((node) => (
+                flowNodes.map((node) => {
+                  const apClickable =
+                    node.type === "AccountingDocumentAp" &&
+                    isFinanceAccountingUiEnabled() &&
+                    canReadAp;
+                  const linkable =
+                    node.type !== "AccountingDocumentAp" || apClickable;
+                  return (
                   <TableRow key={`${node.type}-${node.id}`}>
                     <TableCell>{flowStatusLabel(node)}</TableCell>
                     <TableCell>{flowTypeLabel(node.type)}</TableCell>
                     <TableCell>
-                      <Link
-                        href={procurementFlowNodeHref(node)}
-                        className="font-mono text-primary underline-offset-4 hover:underline"
-                      >
-                        {node.number}
-                      </Link>
+                      {linkable ? (
+                        <Link
+                          href={procurementFlowNodeHref(node)}
+                          className="font-mono text-primary underline-offset-4 hover:underline"
+                        >
+                          {node.number}
+                        </Link>
+                      ) : (
+                        <span className="font-mono text-muted-foreground">
+                          {node.number}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {node.occurredAt
@@ -386,7 +407,8 @@ function PurchaseOrderDetailInner() {
                         : emDash}
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>

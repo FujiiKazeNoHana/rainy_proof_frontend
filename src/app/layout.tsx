@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ThemeSwitcher } from "@/shared/components/ThemeSwitcher";
+import { SettingsMenu } from "@/shared/components/SettingsMenu";
 import { ThemeProvider } from "@/shared/theme/ThemeProvider";
 import { themeBootstrapScript } from "@/shared/theme/theme-script";
 import "./globals.css";
@@ -21,9 +21,9 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-full flex-col">
         <ThemeProvider>
-          <div className="pointer-events-none fixed right-4 top-4 z-50 md:right-6 md:top-5">
+          <div className="pointer-events-none fixed right-2.5 top-2.5 z-50 md:right-3 md:top-3">
             <div className="pointer-events-auto">
-              <ThemeSwitcher />
+              <SettingsMenu />
             </div>
           </div>
           {children}

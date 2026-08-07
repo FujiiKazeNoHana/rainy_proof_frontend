@@ -1,4 +1,5 @@
 import {
+  FINANCE_AR_ROUTE,
   SALES_BILLING_ROUTE,
   SALES_DELIVERIES_ROUTE,
   SALES_ORDERS_ROUTE,
@@ -28,6 +29,8 @@ export function mapDocumentFlowHref(
       return `${SALES_DELIVERIES_ROUTE}/${id}`;
     case "BillingDocument":
       return `${SALES_BILLING_ROUTE}/${id}`;
+    case "AccountingDocumentAr":
+      return `${FINANCE_AR_ROUTE}/${id}`;
     default:
       return SALES_ORDERS_ROUTE;
   }

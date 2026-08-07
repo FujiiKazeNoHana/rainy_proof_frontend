@@ -57,7 +57,7 @@ export function SapSandboxShell({ children }: { children: React.ReactNode }) {
               </h1>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 pr-14 md:pr-24">
+            <div className="flex shrink-0 items-center gap-2 pr-11">
               <label className="sr-only" htmlFor="sap-locale">
                 {t("shell.language")}
               </label>

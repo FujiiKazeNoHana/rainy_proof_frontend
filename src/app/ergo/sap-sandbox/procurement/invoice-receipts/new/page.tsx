@@ -36,6 +36,7 @@ import {
   PURCHASE_ORDERS_ROUTE,
 } from "@/features/ergo/sap_sandbox/constants";
 import { useSapI18n } from "@/features/ergo/sap_sandbox/i18n";
+import { isFinanceAccountingUiEnabled } from "@/features/ergo/sap_sandbox/lib/financeRules";
 import {
   canInvoicePo,
   invoiceableQty,
@@ -265,6 +266,9 @@ function NewInvoiceReceiptInner() {
         toast.success(
           t("invoiceReceipts.new.toast.posted", { number: ir.number }),
         );
+      }
+      if (isFinanceAccountingUiEnabled() && !ir.accountingDocumentId) {
+        toast.error(t("finance.ir.embedMissing"));
       }
       setConfirmOpen(false);
       router.replace(`${INVOICE_RECEIPTS_ROUTE}/${ir.id}`);

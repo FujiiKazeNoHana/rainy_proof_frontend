@@ -3,6 +3,7 @@ import {
   BookOpen,
   Code2,
   LayoutDashboard,
+  Receipt,
   ShoppingBag,
   ShoppingCart,
   Warehouse,
@@ -11,6 +12,10 @@ import type { SapMessageKey } from "../i18n";
 import {
   FEATURE_LOGIN_ROUTE,
   FEATURE_ROUTE,
+  FI_ACCOUNTING_UI_ENABLED,
+  FINANCE_AP_ROUTE,
+  FINANCE_AR_ROUTE,
+  FINANCE_ROUTE,
   GOODS_RECEIPTS_ROUTE,
   INVENTORY_MOVEMENTS_ROUTE,
   INVENTORY_ROUTE,
@@ -56,6 +61,12 @@ export type SapNavItem = {
   requireGrPost?: boolean;
   /** 发票校验写（Admin / Buyer）；且受 INVOICE_RECEIPTS_UI_ENABLED 门控 */
   requireIrUi?: boolean;
+  /** 财务应收读（Admin / SalesClerk） */
+  requireArRead?: boolean;
+  /** 财务应付读（Admin / Buyer） */
+  requireApRead?: boolean;
+  /** 财务 UI 总开关（FI_ACCOUNTING_UI_ENABLED） */
+  requireFiUi?: boolean;
   children?: SapNavItem[];
 };
 
@@ -240,11 +251,43 @@ export const SAP_SANDBOX_NAV: SapNavItem[] = [
       },
     ],
   },
+  {
+    id: "finance",
+    titleKey: "nav.finance",
+    icon: Receipt,
+    matchPrefix: FINANCE_ROUTE,
+    requireFiUi: true,
+    children: [
+      {
+        id: "finance-ar",
+        titleKey: "nav.finance-ar",
+        href: FINANCE_AR_ROUTE,
+        matchPrefix: FINANCE_AR_ROUTE,
+        requireAuth: true,
+        requireFiUi: true,
+        requireArRead: true,
+      },
+      {
+        id: "finance-ap",
+        titleKey: "nav.finance-ap",
+        href: FINANCE_AP_ROUTE,
+        matchPrefix: FINANCE_AP_ROUTE,
+        requireAuth: true,
+        requireFiUi: true,
+        requireApRead: true,
+      },
+    ],
+  },
 ];
 
 /** True when IR nav/pages may be shown (D-FE-IR-SHIP). */
 export function isInvoiceReceiptsUiEnabled(): boolean {
   return INVOICE_RECEIPTS_UI_ENABLED;
+}
+
+/** True when FI nav/pages may be shown (D-FE-FI-SHIP). */
+export function isFinanceAccountingUiEnabled(): boolean {
+  return FI_ACCOUNTING_UI_ENABLED;
 }
 
 export function isNavItemActive(
@@ -312,6 +355,16 @@ export function isNavItemActive(
       return (
         pathname === INVOICE_RECEIPTS_ROUTE ||
         pathname === `${INVOICE_RECEIPTS_ROUTE}/`
+      );
+    }
+    if (item.href === FINANCE_AR_ROUTE) {
+      return (
+        pathname === FINANCE_AR_ROUTE || pathname === `${FINANCE_AR_ROUTE}/`
+      );
+    }
+    if (item.href === FINANCE_AP_ROUTE) {
+      return (
+        pathname === FINANCE_AP_ROUTE || pathname === `${FINANCE_AP_ROUTE}/`
       );
     }
     if (pathname === item.href || pathname.startsWith(`${item.href}/`)) {

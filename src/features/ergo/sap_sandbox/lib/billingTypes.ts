@@ -42,6 +42,9 @@ export type BillingDocument = {
   postedAt: string;
   remark: string | null;
   idempotentReplayed?: boolean | null;
+  /** D-FE-FI-EMBED: non-null when FI onboarded (201/200). */
+  accountingDocumentId?: string | null;
+  accountingDocumentNumber?: string | null;
   lines: BillingDocumentLine[] | null;
   createdAt: string;
   createdBy: string | null;
@@ -76,16 +79,19 @@ export type BillingListQuery = {
 export type DocumentFlowNodeType =
   | "SalesOrder"
   | "OutboundDelivery"
-  | "BillingDocument";
+  | "BillingDocument"
+  | "AccountingDocumentAr";
 
 export type DocumentFlowNode = {
   type: DocumentFlowNodeType;
   id: string;
   number: string;
   status: string;
-  statusLabel: string;
+  /** FI nodes may omit; local map Open → 未清 */
+  statusLabel?: string | null;
   occurredAt: string;
-  amount: number | null;
+  /** FI nodes: null/omitted */
+  amount?: number | null;
   href: string;
 };
 

@@ -158,6 +158,9 @@ export type InvoiceReceiptListItem = {
 export type InvoiceReceipt = InvoiceReceiptListItem & {
   vendorCode?: string;
   lines: InvoiceReceiptLine[] | null;
+  /** D-FE-FI-EMBED: same-tx with AP after Core merge; null → treat as bug (POLL defensive). */
+  accountingDocumentId?: string | null;
+  accountingDocumentNumber?: string | null;
 };
 
 export type CreateInvoiceReceiptLineInput = {
@@ -175,7 +178,8 @@ export type CreateInvoiceReceiptInput = {
 export type ProcurementDocumentFlowNodeType =
   | "PurchaseOrder"
   | "GoodsReceipt"
-  | "InvoiceReceipt";
+  | "InvoiceReceipt"
+  | "AccountingDocumentAp";
 
 export type ProcurementDocumentFlowNode = {
   type: ProcurementDocumentFlowNodeType;
@@ -185,6 +189,8 @@ export type ProcurementDocumentFlowNode = {
   statusLabel?: string | null;
   occurredAt: string;
   href: string;
+  /** AP nodes: null/omitted */
+  amount?: number | null;
 };
 
 export type ProcurementDocumentFlow = {

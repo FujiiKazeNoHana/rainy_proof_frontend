@@ -18,6 +18,7 @@ import {
   deliveryStatusLabel,
   goodsReceiptStatusLabel,
   invoiceReceiptStatusLabel,
+  accountingDocumentStatusLabel,
   mapErrorMessage,
   movementTypeLabel,
   orderStatusLabel,
@@ -37,6 +38,7 @@ type SapI18nContextValue = {
   purchaseOrderStatus: (status: string, fallback?: string | null) => string;
   goodsReceiptStatus: (status: string, fallback?: string | null) => string;
   invoiceReceiptStatus: (status: string, fallback?: string | null) => string;
+  accountingDocumentStatus: (status: string, fallback?: string | null) => string;
   movementType: (type: string, fallback?: string | null) => string;
   errorMessage: (
     errorCode: string | null | undefined,
@@ -86,6 +88,8 @@ export function SapLocaleProvider({ children }: { children: React.ReactNode }) {
         goodsReceiptStatusLabel(locale, status, fallback),
       invoiceReceiptStatus: (status, fallback) =>
         invoiceReceiptStatusLabel(locale, status, fallback),
+      accountingDocumentStatus: (status, fallback) =>
+        accountingDocumentStatusLabel(locale, status, fallback),
       movementType: (type, fallback) =>
         movementTypeLabel(locale, type, fallback),
       errorMessage: (errorCode, fallback, options) =>

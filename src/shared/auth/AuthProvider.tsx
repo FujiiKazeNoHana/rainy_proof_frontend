@@ -13,6 +13,8 @@ import {
   canAdjustInventory,
   canPostGoodsReceipt,
   canPostInvoiceReceipt,
+  canReadAp,
+  canReadAr,
   canReadBilling,
   canReadDelivery,
   canReadInventory,
@@ -51,6 +53,8 @@ type AuthContextValue = {
   canWritePurchaseOrder: boolean;
   canPostGoodsReceipt: boolean;
   canPostInvoiceReceipt: boolean;
+  canReadAr: boolean;
+  canReadAp: boolean;
   login: (request?: DevTokenRequest) => Promise<AuthSession>;
   loginWithProfile: (profile: AuthProfile) => Promise<AuthSession>;
   logout: () => void;
@@ -133,6 +137,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       canWritePurchaseOrder: canWritePurchaseOrder(session?.roles ?? []),
       canPostGoodsReceipt: canPostGoodsReceipt(session?.roles ?? []),
       canPostInvoiceReceipt: canPostInvoiceReceipt(session?.roles ?? []),
+      canReadAr: canReadAr(session?.roles ?? []),
+      canReadAp: canReadAp(session?.roles ?? []),
       login,
       loginWithProfile,
       logout,

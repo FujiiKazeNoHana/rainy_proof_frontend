@@ -1,4 +1,5 @@
 import {
+  FINANCE_AP_ROUTE,
   GOODS_RECEIPTS_ROUTE,
   INVOICE_RECEIPTS_ROUTE,
   PURCHASE_ORDERS_ROUTE,
@@ -74,6 +75,8 @@ export function mapProcurementFlowHref(
       return `${GOODS_RECEIPTS_ROUTE}/${id}`;
     case "InvoiceReceipt":
       return `${INVOICE_RECEIPTS_ROUTE}/${id}`;
+    case "AccountingDocumentAp":
+      return `${FINANCE_AP_ROUTE}/${id}`;
     default:
       return PURCHASE_ORDERS_ROUTE;
   }

@@ -55,6 +55,7 @@ import type {
 } from "@/features/ergo/sap_sandbox/lib/billingTypes";
 import { canCreateFromOrderStatus } from "@/features/ergo/sap_sandbox/lib/deliveryRules";
 import type { DeliveryListItem } from "@/features/ergo/sap_sandbox/lib/deliveryTypes";
+import { isFinanceAccountingUiEnabled } from "@/features/ergo/sap_sandbox/lib/financeRules";
 import {
   canCancelOrder,
   canEditOrder,
@@ -62,11 +63,18 @@ import {
 import type { SalesOrder } from "@/features/ergo/sap_sandbox/lib/types";
 
 function OrderDetailInner() {
-  const { t, orderStatus, deliveryStatus, billingStatus, errorMessage } =
-    useSapI18n();
+  const {
+    t,
+    orderStatus,
+    deliveryStatus,
+    billingStatus,
+    accountingDocumentStatus,
+    errorMessage,
+  } = useSapI18n();
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const { canWriteSales, canWriteDelivery, canWriteBilling } = useAuth();
+  const { canWriteSales, canWriteDelivery, canWriteBilling, canReadAr } =
+    useAuth();
 
   const [order, setOrder] = useState<SalesOrder | null>(null);
   const [deliveries, setDeliveries] = useState<DeliveryListItem[]>([]);
@@ -146,6 +154,8 @@ function OrderDetailInner() {
         return t("orders.detail.flow.type.OutboundDelivery");
       case "BillingDocument":
         return t("orders.detail.flow.type.BillingDocument");
+      case "AccountingDocumentAr":
+        return t("finance.flow.AccountingDocumentAr");
       default:
         return type;
     }
@@ -547,18 +557,35 @@ function OrderDetailInner() {
                       ? billingStatus(node.status, node.statusLabel)
                       : node.type === "OutboundDelivery"
                         ? deliveryStatus(node.status, node.statusLabel)
-                        : orderStatus(node.status, node.statusLabel);
+                        : node.type === "AccountingDocumentAr"
+                          ? accountingDocumentStatus(
+                              node.status,
+                              node.statusLabel,
+                            )
+                          : orderStatus(node.status, node.statusLabel);
+                  const arClickable =
+                    node.type === "AccountingDocumentAr" &&
+                    isFinanceAccountingUiEnabled() &&
+                    canReadAr;
+                  const linkable =
+                    node.type !== "AccountingDocumentAr" || arClickable;
                   return (
                   <TableRow key={`${node.type}-${node.id}`}>
                     <TableCell>{statusLabel}</TableCell>
                     <TableCell>{flowTypeLabel(node.type)}</TableCell>
                     <TableCell>
-                      <Link
-                        href={documentFlowNodeHref(node)}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {node.number}
-                      </Link>
+                      {linkable ? (
+                        <Link
+                          href={documentFlowNodeHref(node)}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {node.number}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-muted-foreground">
+                          {node.number}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {node.occurredAt

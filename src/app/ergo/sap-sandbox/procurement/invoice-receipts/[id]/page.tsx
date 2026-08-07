@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { buttonVariants } from "@/shared/components/ui/button";
+import { toast } from "sonner";
+import { useAuth } from "@/shared/auth";
+import { ApiError } from "@/shared/lib/api-client";
+import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
   Table,
   TableBody,
@@ -13,34 +16,110 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { cn } from "@/shared/lib/utils";
+import { listAccountingDocuments } from "@/features/ergo/sap_sandbox/api/accountingDocuments";
 import { getInvoiceReceipt } from "@/features/ergo/sap_sandbox/api/invoiceReceipts";
 import { ApiErrorBanner } from "@/features/ergo/sap_sandbox/components/ApiErrorBanner";
 import { InvoiceReceiptStatusBadge } from "@/features/ergo/sap_sandbox/components/PurchaseOrderStatusBadge";
 import { RequireAuth } from "@/features/ergo/sap_sandbox/components/RequireAuth";
 import {
+  FINANCE_AP_ROUTE,
   INVOICE_RECEIPTS_ROUTE,
   PURCHASE_ORDERS_ROUTE,
 } from "@/features/ergo/sap_sandbox/constants";
 import { useSapI18n } from "@/features/ergo/sap_sandbox/i18n";
+import {
+  FI_POLL,
+  isFinanceAccountingUiEnabled,
+} from "@/features/ergo/sap_sandbox/lib/financeRules";
 import type { InvoiceReceipt } from "@/features/ergo/sap_sandbox/lib/procurementTypes";
 
 function InvoiceReceiptDetailInner() {
-  const { t, invoiceReceiptStatus } = useSapI18n();
+  const { t, invoiceReceiptStatus, errorMessage } = useSapI18n();
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const { canReadAp } = useAuth();
 
   const [ir, setIr] = useState<InvoiceReceipt | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const [apId, setApId] = useState<string | null>(null);
+  const [apNumber, setApNumber] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+  /** Invalidate in-flight polls on unmount / restart (avoid stuck「加载中」). */
+  const pollGenRef = useRef(0);
+
+  const applyEmbed = useCallback((doc: InvoiceReceipt) => {
+    if (doc.accountingDocumentId) {
+      setApId(doc.accountingDocumentId);
+      setApNumber(doc.accountingDocumentNumber ?? null);
+      return true;
+    }
+    return false;
+  }, []);
+
+  const pollForAp = useCallback(
+    async (sourceId: string) => {
+      if (!isFinanceAccountingUiEnabled() || !canReadAp) return;
+      const gen = ++pollGenRef.current;
+      setPolling(true);
+      try {
+        for (let attempt = 0; attempt < FI_POLL.maxAttempts; attempt++) {
+          if (gen !== pollGenRef.current) return;
+          try {
+            const rows = await listAccountingDocuments({
+              side: "AP",
+              sourceId,
+            });
+            if (gen !== pollGenRef.current) return;
+            const first = rows?.[0];
+            if (first) {
+              setApId(first.id);
+              setApNumber(first.number);
+              return;
+            }
+          } catch (err) {
+            if (gen !== pollGenRef.current) return;
+            if (err instanceof ApiError) {
+              toast.error(errorMessage(err.errorCode, err.message));
+            } else {
+              toast.error(t("errors.generic.requestFailed"));
+            }
+            return;
+          }
+          if (attempt < FI_POLL.maxAttempts - 1) {
+            await new Promise((r) => setTimeout(r, FI_POLL.intervalMs));
+          }
+        }
+        if (gen === pollGenRef.current) {
+          toast.message(t("finance.ir.pollTimeout"));
+        }
+      } finally {
+        if (gen === pollGenRef.current) {
+          setPolling(false);
+        }
+      }
+    },
+    [canReadAp, errorMessage, t],
+  );
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       setLoading(true);
       setError(null);
+      setApId(null);
+      setApNumber(null);
       try {
         const data = await getInvoiceReceipt(id);
-        if (!cancelled) setIr(data);
+        if (cancelled) return;
+        setIr(data);
+        if (isFinanceAccountingUiEnabled() && canReadAp) {
+          if (!applyEmbed(data)) {
+            // D-FE-FI-EMBED-UI: after Core merge embed should be non-null; POLL is defensive only.
+            toast.error(t("finance.ir.embedMissing"));
+            void pollForAp(data.id);
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err);
@@ -52,8 +131,10 @@ function InvoiceReceiptDetailInner() {
     })();
     return () => {
       cancelled = true;
+      pollGenRef.current += 1;
+      setPolling(false);
     };
-  }, [id]);
+  }, [applyEmbed, canReadAp, id, pollForAp]);
 
   if (loading) {
     return (
@@ -79,6 +160,7 @@ function InvoiceReceiptDetailInner() {
 
   const emDash = t("common.emDash");
   const lines = ir.lines ?? [];
+  const showFi = isFinanceAccountingUiEnabled() && canReadAp;
 
   return (
     <div className="flex flex-col gap-6">
@@ -115,10 +197,32 @@ function InvoiceReceiptDetailInner() {
           </Link>
           <Link
             href={`${PURCHASE_ORDERS_ROUTE}/${ir.purchaseOrderId}`}
-            className={cn(buttonVariants({ size: "sm" }))}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
             {t("invoiceReceipts.detail.backPo")}
           </Link>
+          {showFi && apId ? (
+            <Link
+              href={`${FINANCE_AP_ROUTE}/${apId}`}
+              className={cn(buttonVariants({ size: "sm" }))}
+            >
+              {t("finance.ir.viewAp")}
+              {apNumber ? ` ${apNumber}` : ""}
+            </Link>
+          ) : null}
+          {showFi && !apId ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={polling}
+              onClick={() => void pollForAp(ir.id)}
+            >
+              {polling
+                ? t("finance.ir.pollInProgress")
+                : t("finance.ir.pollManual")}
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -157,7 +261,9 @@ function InvoiceReceiptDetailInner() {
                 </TableRow>
               ) : (
                 lines.map((line) => (
-                  <TableRow key={`${line.purchaseOrderLineId}-${line.lineNumber}`}>
+                  <TableRow
+                    key={`${line.purchaseOrderLineId}-${line.lineNumber}`}
+                  >
                     <TableCell>{line.lineNumber}</TableCell>
                     <TableCell className="font-medium">
                       {line.materialCode ?? emDash}

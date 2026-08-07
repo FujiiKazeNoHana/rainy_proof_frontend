@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   DEFAULT_THEME,
+  THEME_IDS,
   THEME_STORAGE_KEY,
   type ThemeId,
   isThemeId,
@@ -58,7 +59,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
-      const next: ThemeId = prev === "blue" ? "warm" : "blue";
+      const index = THEME_IDS.indexOf(prev);
+      const next = THEME_IDS[(index + 1) % THEME_IDS.length] ?? DEFAULT_THEME;
       applyTheme(next);
       return next;
     });

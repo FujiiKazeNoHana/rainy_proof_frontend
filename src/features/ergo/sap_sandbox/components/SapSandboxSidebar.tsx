@@ -12,6 +12,7 @@ import {
   countNavLeaves,
   filterNavTree,
   isInvoiceReceiptsUiEnabled,
+  isFinanceAccountingUiEnabled,
   isNavBranchOpen,
   isNavItemActive,
   navItemMatchesQuery,
@@ -81,6 +82,8 @@ function FavoritesSection({
     canReadProcurementMasterData,
     canWritePurchaseOrder,
     canPostGoodsReceipt,
+    canReadAr,
+    canReadAp,
   } = useAuth();
   const resolveTitle = (item: SapNavItem) => t(item.titleKey);
 
@@ -93,6 +96,9 @@ function FavoritesSection({
     if (item.requirePoWrite && !canWritePurchaseOrder) return false;
     if (item.requireGrPost && !canPostGoodsReceipt) return false;
     if (item.requireIrUi && !isInvoiceReceiptsUiEnabled()) return false;
+    if (item.requireFiUi && !isFinanceAccountingUiEnabled()) return false;
+    if (item.requireArRead && !canReadAr) return false;
+    if (item.requireApRead && !canReadAp) return false;
     if (query.trim() && !navItemMatchesQuery(item, query, resolveTitle)) {
       return false;
     }
@@ -177,6 +183,8 @@ function NavNode({
     canReadProcurementMasterData,
     canWritePurchaseOrder,
     canPostGoodsReceipt,
+    canReadAr,
+    canReadAp,
   } = useAuth();
   const title = t(item.titleKey);
   const hasChildren = (item.children?.length ?? 0) > 0;
@@ -214,6 +222,15 @@ function NavNode({
     return null;
   }
   if (item.requireIrUi && !isInvoiceReceiptsUiEnabled()) {
+    return null;
+  }
+  if (item.requireFiUi && !isFinanceAccountingUiEnabled()) {
+    return null;
+  }
+  if (item.requireArRead && !canReadAr) {
+    return null;
+  }
+  if (item.requireApRead && !canReadAp) {
     return null;
   }
 

@@ -20,10 +20,12 @@ import { ApiErrorBanner } from "@/features/ergo/sap_sandbox/components/ApiErrorB
 import { BillingStatusBadge } from "@/features/ergo/sap_sandbox/components/BillingStatusBadge";
 import { RequireAuth } from "@/features/ergo/sap_sandbox/components/RequireAuth";
 import {
+  FINANCE_AR_ROUTE,
   SALES_BILLING_ROUTE,
   SALES_ORDERS_ROUTE,
 } from "@/features/ergo/sap_sandbox/constants";
 import { useSapI18n } from "@/features/ergo/sap_sandbox/i18n";
+import { isFinanceAccountingUiEnabled } from "@/features/ergo/sap_sandbox/lib/financeRules";
 import type { BillingDocument } from "@/features/ergo/sap_sandbox/lib/billingTypes";
 
 function BillingDetailInner() {
@@ -34,6 +36,7 @@ function BillingDetailInner() {
   const [doc, setDoc] = useState<BillingDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const [embedWarned, setEmbedWarned] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +45,17 @@ function BillingDetailInner() {
       setError(null);
       try {
         const data = await getBillingDocument(id);
-        if (!cancelled) setDoc(data);
+        if (!cancelled) {
+          setDoc(data);
+          if (
+            isFinanceAccountingUiEnabled() &&
+            !data.accountingDocumentId &&
+            !embedWarned
+          ) {
+            toast.error(t("finance.billing.embedMissing"));
+            setEmbedWarned(true);
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err);
@@ -58,7 +71,7 @@ function BillingDetailInner() {
     return () => {
       cancelled = true;
     };
-  }, [id, t]);
+  }, [embedWarned, id, t]);
 
   if (loading) {
     return (
@@ -123,6 +136,17 @@ function BillingDetailInner() {
           >
             {t("deliveries.detail.actions.salesOrder")}
           </Link>
+          {isFinanceAccountingUiEnabled() && doc.accountingDocumentId ? (
+            <Link
+              href={`${FINANCE_AR_ROUTE}/${doc.accountingDocumentId}`}
+              className={cn(buttonVariants({ size: "sm" }))}
+            >
+              {t("finance.billing.viewAr")}
+              {doc.accountingDocumentNumber
+                ? ` ${doc.accountingDocumentNumber}`
+                : ""}
+            </Link>
+          ) : null}
         </div>
       </div>
 

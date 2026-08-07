@@ -4,6 +4,8 @@ export {
   canAdjustInventory,
   canPostGoodsReceipt,
   canPostInvoiceReceipt,
+  canReadAp,
+  canReadAr,
   canReadBilling,
   canReadDelivery,
   canReadInventory,
